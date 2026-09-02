@@ -1,0 +1,602 @@
+/* ==========================================================================
+   CREATEFUL · 创见 —— 分区样式
+   --------------------------------------------------------------------------
+   设计意图：每个区块沿用 main.css 的 HUD 语言（0 圆角 / 0 外投影 / inset 斜面 /
+             等宽承载机器信息），只在"信息结构"上做差异化：
+             配方 = 物品栏格子，时间线 = 世界边界，作品墙 = 展示框，
+             团队 = 玩家名牌，成就 = HUD 计数器。
+   ========================================================================== */
+
+/* ---------- 1. 三大特性（HUD 状态面板） ---------------------------------- */
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s3);
+}
+.feature {
+  padding: var(--s4);
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+  transition: background-color .18s linear, box-shadow .18s linear;
+}
+/* 悬停：不做位移（卡片体系里位移留给配方卡的"拿起"动作），只提亮面板 + 暖橙描边 */
+.feature:hover {
+  background: var(--ink-3);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo),
+    inset 0 0 0 2px color-mix(in srgb, var(--torch), transparent 65%);
+}
+.feature__icon {
+  width: 44px; height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--torch);
+  background: var(--ink-0);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-lo),
+    inset -2px -2px 0 var(--bevel-hi);
+}
+.feature__icon svg { width: 24px; height: 24px; }
+.feature h3 {
+  margin: var(--s3) 0 var(--s2);
+  font-size: 20px;
+}
+.feature h3 small {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.feature__body { margin: 0; color: var(--text-dim); font-size: 16px; line-height: 1.9; }
+.feature__body strong { color: var(--text); }
+
+/* ---------- 2. 服务器配方（物品栏格子 + 编号角标） ------------------------ */
+.recipe-note {
+  margin-top: var(--s5);
+  padding: var(--s3);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-dim);
+  background: var(--ink-0);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-lo),
+    inset -2px -2px 0 var(--bevel-hi);
+}
+
+.recipes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s3);
+}
+.recipe {
+  display: flex;
+  flex-direction: column;
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+  /* hover 的"拿起"反馈：≤3px 位移，且绝不加投影（MC 物品被拿起时只是抬起 + 高亮框） */
+  transition: transform .12s steps(2, end), box-shadow .12s linear;
+  will-change: transform;
+}
+.recipe:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo),
+    inset 0 0 0 3px color-mix(in srgb, var(--torch), transparent 20%);
+}
+.recipe__thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--ink-0);
+  box-shadow: inset 0 -2px 0 var(--bevel-lo);
+}
+.recipe__thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: saturate(.92) contrast(1.04);
+}
+/* 编号角标：保留旧站「配方 N」概念，做成 HUD 标签 */
+.recipe__idx {
+  position: absolute;
+  top: 0; left: 0;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: var(--on-accent);
+  background: var(--torch);
+  box-shadow: inset 2px 2px 0 var(--bevel-accent-hi),
+              inset -2px -2px 0 var(--bevel-accent-lo);
+}
+/* 类型徽章：整块浅色 tint + 细描边，不用竖线强调 */
+.recipe__type {
+  position: absolute;
+  right: var(--s2);
+  bottom: var(--s2);
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--hero-ink);
+  background: var(--meta-bg);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--torch), transparent 50%);
+}
+.recipe__body { padding: var(--s3) var(--s3) var(--s4); flex: 1; display: flex; flex-direction: column; }
+.recipe__body h3 { font-size: 20px; }
+.recipe__desc { margin: var(--s2) 0 var(--s3); color: var(--text-dim); font-size: 15.5px; flex: 1; }
+
+/* 规格表：等宽的"机器信息"区，做成凹陷读数面板 */
+.spec {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--s3);
+  padding: var(--s2) var(--s3);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--ink-0);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-lo),
+    inset -2px -2px 0 var(--bevel-hi);
+}
+.spec dt { color: var(--text-dim); letter-spacing: .08em; }
+.spec dd { margin: 0; color: var(--text); }
+.spec .hl { color: var(--torch); }
+
+/* ---------- 3. 生存进度时间线（全站情感核心） ---------------------------- */
+/* 概念：一条竖向"世界边界"。主线由深色方块堆叠，节点是像素方块。
+   低谷节点用冷灰 + 断裂线，Future 节点用暖橙脉动。 */
+.tl {
+  position: relative;
+  margin-top: var(--s2);
+  padding-left: var(--s6);
+}
+/* 世界边界主线：用重复方块色块拼出"一格一格"的线，而非平滑 1px border */
+.tl::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--s6) * 0.5 - 6px);
+  top: 6px; bottom: 6px;
+  width: 12px;
+  background-image: repeating-linear-gradient(180deg,
+    var(--ink-3) 0 12px, var(--ink-line) 12px 14px);
+}
+.tl__item { position: relative; padding-bottom: var(--s6); }
+.tl__item:last-child { padding-bottom: 0; }
+
+/* 节点方块 */
+.tl__node {
+  position: absolute;
+  left: calc(var(--s6) * -0.5 - 6px + var(--s3));
+  top: 4px;
+  width: 20px; height: 20px;
+  background: var(--torch-deep);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-accent-hi),
+    inset -2px -2px 0 var(--bevel-accent-lo),
+    0 0 0 4px var(--ink-1);
+}
+.tl__item--low .tl__node {
+  background: var(--node-low);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo),
+    0 0 0 4px var(--ink-1);
+}
+.tl__item--future .tl__node {
+  background: var(--torch);
+  animation: future-pulse 1.8s steps(2, end) infinite;
+}
+@keyframes future-pulse {
+  0%, 100% { background: var(--torch); }
+  50% { background: var(--torch-hover); }
+}
+
+.tl__when {
+  display: inline-block;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: .16em;
+  color: var(--torch);
+  background: var(--ink-0);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--torch), transparent 65%);
+}
+.tl__item--low .tl__when {
+  color: var(--text-dim);
+  box-shadow: inset 0 0 0 2px var(--ink-line);
+}
+.tl__item h3 { margin: var(--s2) 0 var(--s1); font-size: clamp(19px, 2.4vw, 24px); }
+.tl__item--low h3 { color: var(--text-dim); }
+.tl__item p { margin: 0; color: var(--text-dim); font-size: 16px; max-width: 66ch; }
+.tl__item--future h3 { color: var(--torch); }
+.tl__item--future p { color: var(--text); }
+
+/* 低谷节点：主线在此处断开一格，视觉上"塌了一截" */
+.tl__item--low::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--s6) * 0.5 - 6px);
+  bottom: -8px;
+  width: 12px; height: 10px;
+  background: var(--ink-1);
+}
+
+/* ---------- 4. 四年老服的故事（纸白内容面 + 折叠） ------------------------ */
+.story {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: var(--s6);
+  align-items: start;
+}
+.story__main { max-width: 68ch; }
+/* 常显首段：像文章的大字引子 */
+.story__lede {
+  margin-bottom: var(--s5);
+  padding-bottom: var(--s4);
+  border-bottom: 3px solid var(--paper-line);
+  font-size: clamp(24px, 3.4vw, 34px);
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--text-dark);
+}
+.story__para {
+  font-size: 17px;
+  line-height: 1.95;
+  color: var(--text-dark);
+  margin-bottom: var(--s4);
+}
+.story__para em { font-style: normal; background: color-mix(in srgb, var(--torch-deep), transparent 60%); padding: 0 3px; }
+.story__para a { word-break: break-all; }
+/* 折叠区：无 JS 时 details 天然展开可见，符合"JS 失效不隐藏内容" */
+.story__fold { border: 0; }
+.story__fold[hidden] { display: none; }
+.story__fold summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 14px var(--s3);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--torch);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-accent-hi),
+    inset -2px -2px 0 var(--bevel-accent-lo);
+  cursor: pointer;
+  list-style: none;
+}
+.story__fold summary::-webkit-details-marker { display: none; }
+.story__fold summary:hover { background: var(--torch-hover); }
+.story__fold summary .chev { width: 18px; height: 18px; flex: none; transition: transform .15s linear; }
+.story__fold[open] summary .chev { transform: rotate(90deg); }
+.story__fold__inner { padding-top: var(--s4); }
+
+/* 侧栏：来源牌 + 「没有玩家」循环链条 */
+.story__aside { display: grid; gap: var(--s3); position: sticky; top: calc(var(--nav-h) + var(--s3)); }
+.story__src {
+  padding: var(--s3);
+  background: var(--paper-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi-paper),
+    inset -2px -2px 0 var(--bevel-lo-paper);
+}
+.story__src h4 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--src-h4);
+  margin-bottom: var(--s2);
+}
+.loop {
+  padding: var(--s3);
+  background: var(--loop-bg);
+  color: var(--loop-fg);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.loop h4 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--loop-accent);
+  margin-bottom: var(--s2);
+}
+.loop li {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding: 5px 0 5px var(--s4);
+  position: relative;
+  border-bottom: 2px dotted color-mix(in srgb, var(--loop-accent), transparent 70%);
+}
+.loop li:last-child { border-bottom: 0; color: var(--torch); font-weight: 700; }
+.loop li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 12px;
+  width: 8px; height: 8px;
+  background: var(--loop-accent);
+}
+.loop li:last-child::before { background: var(--torch); }
+
+/* ---------- 5. 玩家作品墙（展示框网格） ---------------------------------- */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s3);
+}
+.frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 6px;
+  background: var(--ink-3);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+  transition: transform .12s steps(2, end), box-shadow .12s linear;
+  text-align: left;
+}
+.frame:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo),
+    inset 0 0 0 3px color-mix(in srgb, var(--torch), transparent 20%);
+}
+.frame img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--ink-0);
+}
+.frame figcaption {
+  margin-top: 6px;
+  padding: 6px 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 展示框右下角的"放大"角标，提示可点开大图 */
+.frame__zoom {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  color: var(--on-accent);
+  background: color-mix(in srgb, var(--torch), transparent 8%);
+  opacity: 0;
+  transition: opacity .12s linear;
+}
+.frame__zoom svg { width: 16px; height: 16px; }
+.frame:hover .frame__zoom, .frame:focus-visible .frame__zoom { opacity: 1; }
+.frame figcaption {
+  margin-top: 6px;
+  padding: 6px 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Lightbox：自写轻量大图查看器，不引 fancybox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--s4);
+  background: var(--lb-bg);
+}
+.lightbox[hidden] { display: none; }
+.lightbox__fig { margin: 0; max-width: min(1200px, 92vw); }
+.lightbox__fig img {
+  max-height: 78vh;
+  width: auto;
+  margin-inline: auto;
+  background: var(--ink-0);
+  box-shadow:
+    inset 0 0 0 3px var(--ink-line),
+    0 0 0 3px var(--bevel-hi);
+}
+.lightbox__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-top: var(--s3);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.lightbox__bar b { color: var(--torch); font-weight: 700; }
+.lightbox__nav { display: flex; gap: var(--s2); }
+.lightbox__btn {
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.lightbox__btn:hover { color: var(--torch); background: var(--ink-3); }
+.lightbox__btn[disabled] { color: var(--lb-dim); cursor: not-allowed; }
+
+/* ---------- 6. 管理团队（玩家名牌） -------------------------------------- */
+.team {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s3);
+}
+.member {
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s4);
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.member__ava {
+  flex: none;
+  width: 72px; height: 72px;
+  background: var(--ink-0);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-lo),
+    inset -2px -2px 0 var(--bevel-hi);
+}
+.member__ava canvas { width: 100%; height: 100%; image-rendering: pixelated; }
+.member__name { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.member__name b { font-size: 19px; color: var(--text); }
+/* 角色徽章：整块 tint + 细描边，无竖线 */
+.role {
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .06em;
+  color: var(--torch);
+  background: color-mix(in srgb, var(--torch), transparent 88%);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--torch), transparent 65%);
+}
+.role--ok { color: var(--ok-ink); background: var(--ok-tint); box-shadow: inset 0 0 0 2px var(--ok-ring); }
+.role--brand { color: var(--brand-ink); background: var(--brand-tint); box-shadow: inset 0 0 0 2px var(--brand-ring); }
+.member__body p { margin: var(--s2) 0 0; color: var(--text-dim); font-size: 15.5px; }
+/* 座右铭：等宽引文，HUD 的"签名"行 */
+.member__motto {
+  margin-top: var(--s3);
+  padding-top: var(--s2);
+  border-top: 2px dotted var(--ink-line);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.member__motto span { color: var(--torch-deep); }
+
+/* ---------- 7. 已获得成就（HUD 计数器） ---------------------------------- */
+/* 这块用黄昏渐变的末段做背景，把"温度"和"数字"绑在一起。
+   底色走 --stats-sky-*（夜间端＝原 dusk-3→dusk-6，零回归），
+   它在 [data-daylight] 块里会插值到日光蓝，白天不再死守黄昏。 */
+.stats {
+  background:
+    linear-gradient(180deg, var(--stats-veil-1), var(--stats-veil-2)),
+    linear-gradient(180deg, var(--stats-sky-1), var(--stats-sky-2));
+  border-block: 3px solid var(--ink-line);
+}
+.stats__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s4);
+}
+.stat {
+  padding: var(--s5) var(--s4);
+  text-align: center;
+  background: var(--stat-bg);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.stat__num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(56px, 10vw, 104px);
+  font-weight: 800;
+  line-height: .95;
+  color: var(--torch);
+  /* HUD 数字的"厚字"效果：用同色 text-shadow 堆方块，禁模糊投影 */
+  text-shadow: 4px 4px 0 var(--stat-shadow);
+}
+/* 成就语义的数字后面挂绿色确认标记（绿只在成就语义出现） */
+.stat__ok {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  margin-left: var(--s2);
+  vertical-align: super;
+  color: var(--on-status);
+  background: var(--ok);
+}
+.stat__ok svg { width: 14px; height: 14px; }
+.stat__label {
+  margin-top: var(--s3);
+  font-size: 16px;
+  color: var(--text);
+}
+.stat__sub {
+  margin-top: var(--s1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* ---------- 8. CTA 条（调研 / 反馈共用出口） ----------------------------- */
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s5);
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.cta h3 { font-size: clamp(20px, 2.6vw, 26px); }
+.cta p { margin: var(--s2) 0 0; color: var(--text-dim); font-family: var(--font-mono); font-size: 14px; }
+.cta__actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+
+/* ---------- 9. 分区响应式 ------------------------------------------------ */
+@media (max-width: 992px) {
+  .features, .recipes, .team, .stats__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .story { grid-template-columns: 1fr; gap: var(--s5); }
+  .story__aside { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .features, .recipes, .team, .stats__grid, .gallery, .story__aside { grid-template-columns: 1fr; }
+  .member { align-items: flex-start; }
+  .member__ava { width: 56px; height: 56px; }
+  .tl { padding-left: var(--s5); }
+  .tl::before { left: calc(var(--s5) * 0.5 - 5px); width: 10px; }
+  .tl__node { left: calc(var(--s5) * 0.5 - 5px - var(--s3) + 8px); }
+  .tl__item--low::after { left: calc(var(--s5) * 0.5 - 5px); width: 10px; }
+  .stats__grid { gap: var(--s3); }
+  .stat { padding: var(--s4) var(--s3); }
+  .cta { padding: var(--s4); }
+  .cta__actions { width: 100%; }
+  .cta__actions .btn { flex: 1; justify-content: center; }
+}
+
+/* 减弱动效：hover 位移与脉动全关 */
+@media (prefers-reduced-motion: reduce) {
+  .recipe:hover, .frame:hover { transform: none; }
+  .tl__item--future .tl__node { animation: none; background: var(--torch); }
+}

@@ -1,0 +1,1271 @@
+/* ==========================================================================
+   CREATEFUL · 创见 —— 主样式表
+   --------------------------------------------------------------------------
+   业务背景：Minecraft 服务器「CREATEFUL·创见」官网重设计。
+   设计意图：核心概念「黄昏里的一块 HUD」。用 Minecraft 游戏界面的视觉语言
+             （0 圆角 / 0 外投影 / inset 斜面 / 像素阶梯 / 快捷栏）做骨架，
+             生存模式黄昏天空（深靛蓝 → 暮橙）做氛围血肉。
+   约束：禁止 CDN、外部字体、外部图标库。图标一律内联 SVG，字体用系统栈。
+   本文件：设计令牌、基础排版、面板与按钮语言、导航、首屏黄昏场景、页脚、
+           入场动画开关与无障碍设施。分区样式见 sections.css。
+   ========================================================================== */
+
+/* ---------- 1. 设计令牌 -------------------------------------------------- */
+/* 昼夜主题：整站配色由 --daylight（0%=深夜 → 100%=正午）驱动，
+   与首屏天空同源，都由 day-cycle.js 按访客本地时间写入。
+   下面 :root 里的值是**夜间端**，同时充当三重回退：
+     1) 浏览器不支持 color-mix → 覆盖块整条声明失效，停在夜间
+     2) 无 JS / JS 未加载 → <html> 上没有 data-daylight，覆盖块不匹配，停在夜间
+     3) prefers-color-scheme: dark 的用户 → 见文末覆盖块，锁死夜间
+   插值写在 [data-daylight] 块里（源码顺序靠后，特异性相同故胜出）。 */
+@property --daylight {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+
+:root {
+  --daylight: 0%;              /* 夜间端基准；JS 实时覆盖 */
+
+  /* 黄昏天空（只用于首屏与氛围区块，不参与正文配色） */
+  --dusk-1: #070a14;
+  --dusk-2: #0d1428;
+  --dusk-3: #1e2044;
+  --dusk-4: #46284a;
+  --dusk-5: #8a3c39;
+  --dusk-6: #c9622e;
+  --dusk-7: #ff9e3d;
+
+  /* 天空分层色：夜空气与日光层各自的渐变停靠点。
+     这两层各自只在半边时间出现（权重由 day-cycle.js 的 --w-night / --w-day 决定），
+     叠在一起就是黄昏，因此它们**不随** --daylight 变化，只是可替换的调色锚点。 */
+  --sky-night-1: #03050c;      /* 天顶 */
+  --sky-night-2: #060b18;
+  --sky-night-3: #0b1226;
+  --sky-night-4: #141b3a;
+  --sky-night-5: #232448;
+  --sky-night-6: #37304e;
+  --sky-night-7: #4a3a50;      /* 地平线 */
+  --sky-day-1: #1e5fae;        /* 高空蓝 */
+  --sky-day-2: #2e78c2;
+  --sky-day-3: #569ed6;
+  --sky-day-4: #9ccbec;
+  --sky-day-5: #d9e8f0;        /* 近地平线 */
+
+  /* 日月与云：天体自身的材质色。位置与随高度变化的色相由 JS 给
+     （--sun-x / --sun-y / --sun-c / --sun-glow），这里只放静态材质。 */
+  --sun-default: #ff9e3d;      /* JS 未就绪时的太阳色，等于黄昏端暖橙 */
+  --sun-top: #ffd479;          /* 无 color-mix 支持时的方块太阳顶色 */
+  --sun-hi: #ffffff;                    /* color-mix 提亮用（纯白） */
+  --sun-bevel: rgba(255, 255, 255, .55); /* 方块太阳左上受光斜面 */
+  --sun-lo: rgba(216, 96, 20, .7);      /* 方块太阳右下背光 */
+  --sun-halo: rgba(255, 158, 61, .35);   /* 日晕（降级用，JS 就绪时走 --sun-glow） */
+  --moon-face-1: #f2f4fa;
+  --moon-face-2: #c3c9dd;
+  --moon-hi: rgba(255, 255, 255, .7);
+  --moon-lo: rgba(90, 100, 140, .55);
+  --moon-glow: rgba(196, 208, 240, .22); /* 月晕 */
+  --cloud: rgba(228, 222, 235, .30);     /* MC 方块云 */
+  --cloud-hi: rgba(255, 255, 255, .35);  /* 云顶受光 */
+  --torch-glow: rgba(255, 158, 61, .30); /* 火把它：地平线暖光 */
+
+  /* 时间条轨道：夜→晨→午→昏→夜的色带停靠点（天空的抽象缩影，故独立于 --daylight） */
+  --track-dusk: #3a3560;
+  --track-dawn: #ff9e5e;
+  --track-day: #7fb2e8;
+  --track-day-hi: #bfe0f5;
+  --track-inset: rgba(0, 0, 0, .4);
+
+  /* 状态色表面上的固定白字（绿/蓝底上的对勾，不随昼夜翻转） */
+  --on-status: #ffffff;
+
+  /* 语义色半透明底：成就绿 / 品牌蓝在角色标签上的色底与描边 */
+  --ok-tint: rgba(67, 160, 71, .14);
+  --ok-ring: rgba(67, 160, 71, .4);
+  --brand-tint: rgba(13, 139, 255, .14);
+  --brand-ring: rgba(13, 139, 255, .4);
+
+  /* 成就区块的薄纱：只轻压黄昏末段渐变，避免晨昏时整块内容被灰色遮罩盖住。 */
+  --stats-veil-1: rgba(13, 20, 40, .34);
+  --stats-veil-2: rgba(30, 32, 68, .26);
+  /* 成就区块的底色锚点（夜间端＝原黄昏末段，零回归）。
+     单独开一组而不复用 --dusk-*，是因为 dusk 是首屏「无 JS 恒为黄昏」的兜底色，
+     按设计不参与昼夜插值；stats 这块要跟着时间走，所以给它自己的端点。 */
+  --stats-sky-1: #1e2044;
+  --stats-sky-2: #c9622e;
+
+
+  /* 面板：深灰近黑家族（MC 物品栏底）→ 白天转成受光的浅蓝灰 */
+  --ink-0: #131519;
+  --ink-1: #1c1f24;
+  --ink-2: #23272e;
+  --ink-3: #2c313a;
+  --ink-line: #3a4049;
+
+  /* 内容面：纸白，按区块交替出现。
+     白天整站转浅色后，纸白若继续变白就没有节奏了，所以它反向走——
+     正午时收成深色面，保住「明 / 暗交替」这条设计主线。 */
+  --paper: #e9e6e0;
+  --paper-2: #f4f2ee;
+  --paper-line: #c9c4bb;
+
+  /* 文字：随各自所在面翻转，配对关系（浅底深字 / 深底浅字）始终成立 */
+  --text: #dfe4ea;
+  --text-dim: #a2acb8;
+  --text-dark: #1b1e22;
+  --text-dark-dim: #4d555e;
+
+  /* 情感主色：火把暖橙（黄昏与温度）。白天压深，保证在浅底上仍可读 */
+  --torch: #ffb347;
+  --torch-deep: #ff9e3d;
+  --torch-dim: #8a5a20;
+  --on-accent: #0e1113;        /* 落在 torch 表面上的文字色 */
+
+  /* 次强调：品牌蓝（可操作语义：链接 / hover 辅助） */
+  --brand: #3d9dff;
+  --brand-solid: #0d8bff;
+
+  /* 状态：绿只在"确认 / 成就"语义出现 */
+  --ok: #43a047;
+  --warn: #e2a03c;
+  --bad: #d0524d;
+
+  /* 斜面（inset bevel）：左上受光、右下背光，全站深度的唯一来源 */
+  --bevel-hi: rgba(255, 255, 255, .14);
+  --bevel-lo: rgba(0, 0, 0, .55);
+  --bevel-hi-paper: rgba(255, 255, 255, .95);
+  --bevel-lo-paper: rgba(0, 0, 0, .20);
+
+  /* 落在强调色（torch 橙）表面上的斜面：比中性面更亮的高光、更重的暗部 */
+  --bevel-accent-hi: rgba(255, 255, 255, .5);
+  --bevel-accent-lo: rgba(0, 0, 0, .45);
+
+  /* 首屏直接浮在天空上的文字：白天天空变亮蓝，这些必须转深。
+     --hero-accent 是打字机行的专属色，与全站 --torch 解耦：
+     torch 白天压成暗橙是为了在纸白底上撑住按钮面，
+     而打字机浮在亮蓝天空上，同一套压深逻辑只会得到一块锈色。 */
+  --hero-ink: #ffffff;
+  --hero-accent: #ffb347;
+  --hero-accent-shadow: rgba(11, 14, 22, .7);
+  --hero-shadow: rgba(11, 14, 22, .8);
+
+  /* ---- 派生色（夜间基准）：白天端在 1b 块里插值 ----
+     这些不是"面"，而是浮在面上的半透明 HUD 底、选中描边、强调文字。
+     它们不能跟着 ink 家族一起翻，必须各自决定往哪走，所以单独成组。 */
+  --hud-bg:      rgba(19, 21, 25, .94);    /* 顶部导航条 */
+  --meta-bg:     rgba(19, 21, 25, .82);    /* 首屏信息面板 */
+  --hotbar-bg:   rgba(28, 31, 36, .92);    /* 快捷栏底 */
+  --toast-bg:    #1a1c22;                  /* 成就提示条 */
+  --stat-bg:     rgba(19, 21, 25, .72);    /* 数据卡 */
+  --frame-sel:   rgba(255, 255, 255, .9);  /* MC 选中框（白描边） */
+  --torch-hover: #ffc978;                  /* 按钮 hover */
+  --ghost-hover: #384150;                  /* 次级按钮 hover 底 */
+  --link-paper:  #0a63c4;                  /* 纸白区链接 */
+  --num-paper:   #a4551c;                  /* 纸白区编号 */
+  --story-para:  #2a2f35;                  /* 故事正文 */
+  --src-h4:      #6d7580;                  /* 来源牌小标题 */
+  --node-low:    #4a5058;                  /* 时间线低谷节点 */
+  --stat-shadow: rgba(0, 0, 0, .45);       /* 数字厚字投影 */
+  --hero-dim:    rgba(255, 255, 255, .72); /* 首屏次级文字 */
+  --hero-cue:    rgba(255, 255, 255, .45); /* 打字机提示符 */
+  --ok-ink:      #7fd18a;                  /* 深色底上的绿字 */
+  --brand-ink:   #7fc0ff;                  /* 深色底上的蓝字 */
+  --loop-bg:     #241a1a;                  /* 「没有玩家」卡片 */
+  --loop-fg:     #f0dcd4;
+  --loop-accent: #c78779;
+
+  /* ---- GUI 构件（物品格 / 滑块 / 进度槽 / 光箱）----
+     注意：天空本体（sky / sun / moon / stars / cloud / terrain）与时间条轨道
+     不参与反转——它们是一张"天空的照片"，本身就是昼夜的指示器，
+     夜里把天空画成亮的等于把时钟拨错。 */
+  --slot-bg:     rgba(12, 14, 18, .96);    /* 物品格底 */
+  --slot-edge:   #2b2f5a;                  /* 物品格内描边 */
+  --pane-deep:   #2a2d33;                  /* 进度条凹槽底 */
+  --knob-face:   #f5f5f5;                  /* 滑块正面 */
+  --knob-hi:     #ffffff;
+  --knob-lo:     #9a9a9a;
+  --knob-ring:   #1a1c22;
+  --lb-bg:       rgba(7, 9, 13, .94);      /* 图片光箱遮罩 */
+  --lb-dim:      #55606b;                  /* 光箱禁用态 */
+  --star:        #ffffff;                  /* 星点 */
+  --track-dark:  #0a1030;                  /* 时间条轨道暗端 */
+
+  /* 字体系统：全部系统栈，零外部依赖 */
+  --font-sans: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC",
+               sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New",
+               monospace;
+
+  /* 间距：8px 基础单位的倍数关系 */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 16px;
+  --s4: 24px;
+  --s5: 32px;
+  --s6: 48px;
+  --s7: 64px;
+  --s8: 96px;
+
+  --px: 4px;              /* 像素单元：所有阶梯/网格图形按它的倍数走 */
+  --maxw: 1180px;
+  --nav-h: 56px;
+}
+
+/* ---------- 1b. 昼夜插值：daylight 0%→100% 即「夜→昼」两端连续过渡 --------- */
+/* 只在 day-cycle.js 跑起来（<html data-daylight>）后生效。
+   color-mix 的两个端点是固定色，--daylight 是唯一变量；
+   @property 把它注册成 <percentage>，浏览器才能对整站颜色做平滑插值，
+   否则分钟级跳变会显得生硬。 */
+html[data-daylight] {
+  --ink-0:   color-mix(in oklab, #131519, #dfe4ec var(--daylight));
+  --ink-1:   color-mix(in oklab, #1c1f24, #e9edf3 var(--daylight));
+  --ink-2:   color-mix(in oklab, #23272e, #f2f5f9 var(--daylight));
+  --ink-3:   color-mix(in oklab, #2c313a, #f8fafc var(--daylight));
+  --ink-line:color-mix(in oklab, #3a4049, #b4bdc9 var(--daylight));
+
+  /* 纸白区白天反转成深色面：与整站明暗节奏相反，保住 band 交替 */
+  --paper:     color-mix(in oklab, #e9e6e0, #262b34 var(--daylight));
+  --paper-2:   color-mix(in oklab, #f4f2ee, #313845 var(--daylight));
+  --paper-line:color-mix(in oklab, #c9c4bb, #4a5260 var(--daylight));
+
+  /* 文字随各自所在面翻转（--text 在暗面，--text-dark 在亮面） */
+  --text:         color-mix(in oklab, #dfe4ea, #1a1e24 var(--daylight));
+  --text-dim:     color-mix(in oklab, #a2acb8, #4c5561 var(--daylight));
+  --text-dark:    color-mix(in oklab, #1b1e22, #e4e9f0 var(--daylight));
+  --text-dark-dim:color-mix(in oklab, #4d555e, #a8b2bf var(--daylight));
+
+  /* 情感色：白天压深，保证浅底上仍可读 */
+  --torch:      color-mix(in oklab, #ffb347, #b06a12 var(--daylight));
+  --torch-deep: color-mix(in oklab, #ff9e3d, #8f540d var(--daylight));
+  --torch-dim:  color-mix(in oklab, #8a5a20, #c98a3a var(--daylight));
+  --on-accent:  color-mix(in oklab, #0e1113, #fff6e6 var(--daylight));
+
+  --brand: color-mix(in oklab, #3d9dff, #0a63c4 var(--daylight));
+
+  /* 斜面：白天整站变亮，高光减弱、阴影加重，立体感不丢 */
+  --bevel-hi: color-mix(in srgb, rgba(255,255,255,.14), rgba(255,255,255,.03) var(--daylight));
+  --bevel-lo: color-mix(in srgb, rgba(0,0,0,.55), rgba(0,0,0,.30) var(--daylight));
+  --bevel-hi-paper: color-mix(in srgb, rgba(255,255,255,.95), rgba(255,255,255,.18) var(--daylight));
+  --bevel-lo-paper: color-mix(in srgb, rgba(0,0,0,.20), rgba(0,0,0,.55) var(--daylight));
+
+  /* 首屏浮在天空上的文字：白天天空变亮蓝，必须转深 */
+  --hero-ink:     color-mix(in oklab, #ffffff, #0b1220 var(--daylight));
+  /* 白天端不用暗锈色：正午压到 #8a5210 会偏橄榄、像块脏铁。
+     改走高彩度焦橙，可读性交给下面的像素投影扛，跟大标题是同一套语言。 */
+  /* 白天端不用低彩度橄榄棕（旧值 #8a5210）：亮度够但色相发脏，在蓝天上像块锈铁。
+     改走高彩度焦橙，明度维持原有可读水平，可读性交给下面的像素投影扛，
+     跟 .hero__title 是同一套「厚字 + 硬投影」语言。 */
+  --hero-accent:  color-mix(in oklab, #ffb347, #a83a05 var(--daylight));
+  /* 投影方向跟 --hero-shadow 保持一致：白天文字转深，投影必须转亮才拉得开层次。
+     深色文字配深色投影只会糊成一坨，像素感就没了。 */
+  --hero-accent-shadow: color-mix(in srgb, rgba(11,14,22,.7), rgba(255,255,255,.65) var(--daylight));
+  --hero-shadow:  color-mix(in srgb, rgba(11,14,22,.8), rgba(255,255,255,.6) var(--daylight));
+
+  /* 派生色白天端 */
+  --hud-bg:      color-mix(in srgb, rgba(19,21,25,.94), rgba(244,247,251,.94) var(--daylight));
+  --meta-bg:     color-mix(in srgb, rgba(19,21,25,.82), rgba(244,247,251,.9) var(--daylight));
+  --hotbar-bg:   color-mix(in srgb, rgba(28,31,36,.92), rgba(238,242,247,.94) var(--daylight));
+  --toast-bg:    color-mix(in oklab, #1a1c22, #f7f9fc var(--daylight));
+  --stat-bg:     color-mix(in srgb, rgba(19,21,25,.72), rgba(255,255,255,.72) var(--daylight));
+  --frame-sel:   color-mix(in srgb, rgba(255,255,255,.9), rgba(20,26,34,.85) var(--daylight));
+  --torch-hover: color-mix(in oklab, #ffc978, #c9822c var(--daylight));
+  --ghost-hover: color-mix(in oklab, #384150, #c3ccd8 var(--daylight));
+  --link-paper:  color-mix(in oklab, #0a63c4, #7fc0ff var(--daylight));
+  --num-paper:   color-mix(in oklab, #a4551c, #e0a45c var(--daylight));
+  --story-para:  color-mix(in oklab, #2a2f35, #c8d2de var(--daylight));
+  --src-h4:      color-mix(in oklab, #6d7580, #97a3b2 var(--daylight));
+  --node-low:    color-mix(in oklab, #4a5058, #9aa5b3 var(--daylight));
+  --stat-shadow: color-mix(in srgb, rgba(0,0,0,.45), rgba(255,255,255,.55) var(--daylight));
+  --hero-dim:    color-mix(in srgb, rgba(255,255,255,.72), rgba(11,18,32,.78) var(--daylight));
+  --hero-cue:    color-mix(in srgb, rgba(255,255,255,.45), rgba(11,18,32,.5) var(--daylight));
+  --ok-ink:      color-mix(in oklab, #7fd18a, #1c6b28 var(--daylight));
+  --brand-ink:   color-mix(in oklab, #7fc0ff, #0a5aad var(--daylight));
+  --loop-bg:     color-mix(in oklab, #241a1a, #f0e2dc var(--daylight));
+  --loop-fg:     color-mix(in oklab, #f0dcd4, #4a2f28 var(--daylight));
+  --loop-accent: color-mix(in oklab, #c78779, #8a4a3a var(--daylight));
+
+  /* 成就区块：底色由黄昏末段转成日光蓝，薄纱同步转淡。
+     这两层原先是硬编码，白天被 .92 不透明度的深蓝紫压死，整块永远停在黄昏 */
+  --stats-sky-1:  color-mix(in oklab, #1e2044, #2e78c2 var(--daylight));
+  --stats-sky-2:  color-mix(in oklab, #c9622e, #9ccbec var(--daylight));
+  --stats-veil-1: color-mix(in srgb, rgba(13,20,40,.34), rgba(248,250,252,.12) var(--daylight));
+  --stats-veil-2: color-mix(in srgb, rgba(30,32,68,.26), rgba(248,250,252,.08) var(--daylight));
+
+  /* GUI 构件白天端：凹槽变浅、光箱变亮、滑块描边转深。
+     --star / --track-dark 有意不参与（星点只在夜空出现，轨道是天空本身） */
+  --slot-bg:   color-mix(in srgb, rgba(12,14,18,.96), rgba(236,240,246,.96) var(--daylight));
+  --slot-edge: color-mix(in oklab, #2b2f5a, #a8b2c4 var(--daylight));
+  --pane-deep: color-mix(in oklab, #2a2d33, #c3cad4 var(--daylight));
+  --knob-face: color-mix(in oklab, #f5f5f5, #e6eaf0 var(--daylight));
+  --knob-lo:   color-mix(in oklab, #9a9a9a, #7e858f var(--daylight));
+  --knob-ring: color-mix(in oklab, #1a1c22, #525a68 var(--daylight));
+  --lb-bg:     color-mix(in srgb, rgba(7,9,13,.94), rgba(240,243,248,.94) var(--daylight));
+  --lb-dim:    color-mix(in oklab, #55606b, #6b7480 var(--daylight));
+
+  /* 强调面上的斜面：白天 torch 压深成暗橙，白高光要收，否则会像贴了张锡纸 */
+  --bevel-accent-hi: color-mix(in srgb, rgba(255,255,255,.5), rgba(255,255,255,.22) var(--daylight));
+  --bevel-accent-lo: color-mix(in srgb, rgba(0,0,0,.45), rgba(0,0,0,.5) var(--daylight));
+}
+
+/* 跟随太阳连续渐变：--daylight 本身做 1.6s 过渡，全站颜色跟着走。
+   时间机器拖拽时由 .day-fast 缩短到跟手（见下方 .day-fast 块）。 */
+html[data-daylight] { transition: --daylight 1.6s linear; }
+html.day-fast[data-daylight] { transition: --daylight .09s linear; }
+
+/* ---------- 2. Reset 与基础 ---------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-h) + var(--s3)); }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text);
+  background: var(--ink-0);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img { display: block; max-width: 100%; height: auto; }
+canvas { display: block; }
+svg { display: block; }
+
+h1, h2, h3, h4 { margin: 0; line-height: 1.25; font-weight: 700; letter-spacing: .01em; }
+p { margin: 0 0 var(--s3); }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+a { color: var(--brand); text-decoration: none; }
+a:hover { color: var(--torch); }
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+del { color: var(--text-dim); }
+
+/* 等宽工具类：承担一切"机器信息"（地址 / 编号 / 时间戳 / 数字） */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+
+/* ---------- 3. 无障碍设施 ------------------------------------------------ */
+/* 跳转链接：键盘 Tab 时出现在页面左上角 */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: var(--s2);
+  z-index: 999;
+  padding: var(--s2) var(--s3);
+  background: var(--ink-1);
+  color: var(--torch);
+  font-family: var(--font-mono);
+  box-shadow: inset 0 0 0 2px var(--torch);
+}
+.skip-link:focus { top: var(--s2); }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 焦点样式：深底上必须明显，双层（橙色实心描边 + 外圈深色留白） */
+:focus-visible {
+  outline: 3px solid var(--torch);
+  outline-offset: 2px;
+}
+
+/* ---------- 4. 版面骨架 -------------------------------------------------- */
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--s4);
+}
+
+.band {
+  position: relative;
+  padding-block: var(--s8);
+}
+.band--dark { background: var(--ink-1); }
+.band--deeper { background: var(--ink-0); }
+/* 纸白内容面：给"故事"这种长文本区块，深/浅交替制造节奏 */
+.band--paper {
+  background: var(--paper);
+  color: var(--text-dark);
+}
+.band--paper a { color: var(--link-paper); }
+.band--paper a:hover { color: var(--torch-deep); }
+
+/* 区块头：编号（机器）+ 标题（人）+ 导语，全站统一节奏 */
+.band__head { margin-bottom: var(--s6); max-width: 72ch; }
+.band__num {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--torch-deep);
+  margin-bottom: var(--s2);
+}
+.band--paper .band__num { color: var(--num-paper); }
+.band__title { font-size: clamp(28px, 4.4vw, 44px); }
+.band__lede {
+  margin: var(--s3) 0 0;
+  color: var(--text-dim);
+  font-size: clamp(15px, 1.6vw, 18px);
+  max-width: 62ch;
+}
+.band--paper .band__lede { color: var(--text-dark-dim); }
+
+/* 像素阶梯分隔线：全站母题（方块边缘的阶梯感，禁平滑曲线） */
+.pixel-rule {
+  height: 12px;               /* 两行 6px 砖，错开半个砖形成阶梯咬合 */
+  margin: 0;
+  border: 0;
+  background-image:
+    repeating-linear-gradient(90deg, var(--ink-line) 0 8px, transparent 8px 16px),
+    repeating-linear-gradient(90deg, transparent 0 8px, var(--ink-line) 8px 16px);
+  background-size: 16px 6px, 16px 6px;
+  background-position: 0 0, 0 6px;
+  background-repeat: repeat-x;
+  opacity: .8;
+}
+.band--paper .pixel-rule {
+  background-image:
+    repeating-linear-gradient(90deg, var(--paper-line) 0 8px, transparent 8px 16px),
+    repeating-linear-gradient(90deg, transparent 0 8px, var(--paper-line) 8px 16px);
+}
+
+/* ---------- 5. 面板与按钮（inset 斜面语言） ------------------------------- */
+/* 深色面板：0 圆角 0 外投影，深度只靠 inset 双面 */
+.panel {
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.panel--sink {
+  background: var(--ink-0);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-lo),
+    inset -2px -2px 0 var(--bevel-hi);
+}
+.panel--paper {
+  background: var(--paper-2);
+  color: var(--text-dark);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi-paper),
+    inset -2px -2px 0 var(--bevel-lo-paper);
+}
+
+/* 按钮：MC 按钮 = 凸起斜面，按下时反转（内凹），位移归零 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 12px 20px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--on-accent);
+  background: var(--torch);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-accent-hi),
+    inset -2px -2px 0 var(--bevel-accent-lo);
+  transition: background-color .15s linear, transform .05s linear,
+              box-shadow .05s linear, color .15s linear;
+}
+.btn:hover { background: var(--torch-hover); color: var(--on-accent); }
+.btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset -2px -2px 0 var(--bevel-accent-hi),
+    inset 2px 2px 0 var(--bevel-accent-lo);
+}
+.btn svg { width: 18px; height: 18px; flex: none; }
+
+/* 次级按钮：描边版，用于并列的次要动作 */
+.btn--ghost {
+  color: var(--text);
+  background: var(--ink-3);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo),
+    inset 0 0 0 2px var(--bevel-hi);
+}
+.btn--ghost:hover { background: var(--ghost-hover); color: var(--torch); }
+.btn--sm { padding: 8px 14px; font-size: 13px; }
+
+/* 文本链接式按钮（导语文境里用），下划线用虚线保持像素味 */
+.link-plain {
+  font-family: var(--font-mono);
+  border-bottom: 2px dashed currentColor;
+  padding-bottom: 1px;
+}
+
+/* ---------- 6. 顶部导航（HUD 条） ---------------------------------------- */
+.hud {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 80;
+  height: var(--nav-h);
+  background: var(--hud-bg);
+  backdrop-filter: blur(6px);
+  border-bottom: 2px solid var(--ink-line);
+}
+.hud__inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+.hud__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.hud__brand:hover { color: var(--torch); }
+.hud__brand img { width: 28px; height: 28px; image-rendering: pixelated; }
+.hud__brand span { font-family: var(--font-mono); font-size: 15px; }
+.hud__brand small {
+  font-family: var(--font-sans);
+  color: var(--text-dim);
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: .1em;
+}
+
+.hud__nav { margin-left: auto; }
+.hud__nav ul { display: flex; align-items: center; gap: var(--s1); }
+.hud__nav a {
+  display: block;
+  padding: 8px 12px;
+  font-size: 15px;
+  color: var(--text-dim);
+  border: 2px solid transparent;
+  transition: color .15s linear, background-color .15s linear;
+}
+.hud__nav a:hover, .hud__nav a[aria-current="true"] {
+  color: var(--torch);
+  background: var(--ink-2);
+  border-color: var(--ink-line);
+}
+.hud__actions { display: flex; align-items: center; gap: var(--s2); }
+
+/* 汉堡按钮：只显示在小屏 */
+.hud__toggle {
+  display: none;
+  width: 44px; height: 40px;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.hud__toggle svg { width: 22px; height: 22px; stroke: var(--text); }
+.hud__toggle:hover svg { stroke: var(--torch); }
+
+/* 小屏导航面板：JS 控制 hidden，展开为整幅下拉面板 */
+.hud__panel {
+  position: fixed;
+  top: var(--nav-h);
+  left: 0; right: 0;
+  z-index: 79;
+  background: var(--ink-1);
+  border-bottom: 3px solid var(--ink-line);
+  padding: var(--s3) var(--s4) var(--s4);
+  box-shadow: inset 0 2px 0 var(--bevel-hi);
+}
+.hud__panel[hidden] { display: none; }
+.hud__panel ul { display: grid; gap: var(--s1); }
+.hud__panel a {
+  display: block;
+  padding: 12px var(--s3);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--text);
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.hud__panel a:hover { color: var(--torch); }
+.hud__panel .hud__actions { margin-top: var(--s3); flex-wrap: wrap; }
+
+/* ---------- 7. 首屏：黄昏场景 -------------------------------------------- */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: calc(var(--nav-h) + var(--s7)) 0 var(--s7);
+  /* 黄昏天空：深靛蓝 → 暮橙，多段以保留层次，但只两三个主色相 */
+  background: linear-gradient(
+    180deg,
+    var(--dusk-1) 0%,
+    var(--dusk-2) 18%,
+    var(--dusk-3) 36%,
+    var(--dusk-4) 52%,
+    var(--dusk-5) 66%,
+    var(--dusk-6) 80%,
+    var(--dusk-7) 100%
+  );
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* 天空叠层：.hero 本体那条写死的黄昏渐变是"黄金时刻"，也是无 JS 时的最终画面。
+   night / day 两层按访客本地时间由 day-cycle.js 调透明度（alt 权重见该脚本），
+   两层都归零时露出的正是黄昏，所以晨昏各约 40 分钟不需要单独一层。 */
+.hero__sky { position: absolute; inset: 0; z-index: -3; pointer-events: none; }
+/* 权重由 day-cycle.js 写进 --w-night / --w-day；无 JS 时取默认 0 → 恒为黄昏 */
+.sky { position: absolute; inset: 0; opacity: 0; transition: opacity 1.6s linear; }
+.sky--night { opacity: var(--w-night, 0); }
+.sky--day { opacity: var(--w-day, 0); }
+.sky--night {
+  background: linear-gradient(
+    180deg,
+    var(--sky-night-1) 0%, var(--sky-night-2) 20%, var(--sky-night-3) 40%, var(--sky-night-4) 60%,
+    var(--sky-night-5) 78%, var(--sky-night-6) 92%, var(--sky-night-7) 100%
+  );
+}
+.sky--day {
+  background: linear-gradient(
+    180deg,
+    var(--sky-day-1) 0%, var(--sky-day-2) 30%, var(--sky-day-3) 58%, var(--sky-day-4) 82%, var(--sky-day-5) 100%
+  );
+}
+
+/* 星点：只在上半幅（地平线附近不该有星），CSS 画的方块星 */
+.hero__stars {
+  position: absolute;
+  inset: 0 0 45% 0;
+  z-index: -2;
+  pointer-events: none;
+}
+.hero__stars i {
+  position: absolute;
+  width: 3px; height: 3px;
+  background: var(--star);
+  opacity: .7;
+  animation: twinkle 4s steps(2, end) infinite;
+}
+@keyframes twinkle { 0%, 100% { opacity: .15; } 50% { opacity: .9; } }
+
+/* 太阳：方块太阳。位置由 day-cycle.js 用 --sun-x / --sun-y 驱动（left/top 定位，
+   比 bottom 更好写弧线），颜色用 --sun-c 随高度变化：贴地平线暮橙，升高转亮黄。 */
+.hero__sun {
+  position: absolute;
+  z-index: -2;
+  left: var(--sun-x, 62%);
+  top: var(--sun-y, 74%);
+  opacity: var(--sun-o, 1);
+  width: 92px; height: 92px;
+  /* 降级兜底：不支持 color-mix 的浏览器至少保住这条黄昏渐变 */
+  background: linear-gradient(180deg, var(--sun-top), var(--sun-default));
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--sun-c, var(--sun-default)), var(--sun-hi) 42%),
+    var(--sun-c, var(--sun-default)));
+  box-shadow:
+    inset 3px 3px 0 var(--sun-bevel),
+    inset -3px -3px 0 var(--sun-lo);
+  transition: left 1.6s linear, top 1.6s linear, opacity 1.6s linear;
+}
+.hero__sun::after {
+  content: "";
+  position: absolute;
+  inset: -34px;
+  background: radial-gradient(circle, var(--sun-halo), transparent 70%);
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--sun-glow, var(--sun-default)) 35%, transparent), transparent 70%);
+}
+
+/* 月亮：与太阳共用同一条弧线，相位相反；自带星芒感的外圈 */
+.hero__moon {
+  position: absolute;
+  z-index: -2;
+  left: var(--moon-x, 30%);
+  top: var(--moon-y, 20%);
+  width: 70px; height: 70px;
+  opacity: var(--moon-o, 0);
+  background: linear-gradient(180deg, var(--moon-face-1), var(--moon-face-2));
+  box-shadow:
+    inset 3px 3px 0 var(--moon-hi),
+    inset -3px -3px 0 var(--moon-lo);
+  transition: opacity 1.6s linear;
+}
+.hero__moon::after {
+  content: "";
+  position: absolute;
+  inset: -26px;
+  background: radial-gradient(circle, var(--moon-glow), transparent 70%);
+}
+
+/* 云：MC 式方块云，横向缓慢飘动。白天最实，夜里几乎化进夜色（--w-day 由 day-cycle.js 给） */
+.hero__clouds {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  opacity: calc(0.25 + 0.75 * var(--w-day, 0));
+  transition: opacity 1.6s linear;
+}
+.cloud {
+  position: absolute;
+  background: var(--cloud);
+  box-shadow: inset 0 2px 0 var(--cloud-hi);
+  animation: drift linear infinite;
+}
+.cloud--a { top: 16%; left: -22%; width: 240px; height: 20px; animation-duration: 150s; }
+.cloud--b { top: 24%; left: -40%; width: 380px; height: 16px; animation-duration: 210s; opacity: .7; }
+.cloud--c { top: 9%;  left: -60%; width: 160px; height: 16px; animation-duration: 180s; opacity: .5; }
+@keyframes drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(160vw); }
+}
+
+/* 地形剪影：三层方块阶梯，纯 SVG（crispEdges 保证像素边缘不糊） */
+.hero__terrain {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.hero__terrain svg { width: 100%; height: auto; }
+.hero__terrain--far { opacity: .55; }
+
+/* 火把它：地平线上两簇暖光，黄昏温度的来源 */
+.torchlight {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 220px;
+  z-index: -1;
+  background: radial-gradient(ellipse 60% 100% at 50% 100%, var(--torch-glow), transparent 70%);
+  pointer-events: none;
+}
+
+.hero__body { position: relative; z-index: 1; }
+
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: .18em;
+  color: var(--on-accent);
+  background: var(--torch);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-accent-hi),
+    inset -2px -2px 0 var(--bevel-accent-lo);
+}
+
+/* 大标题：创见 —— 立在黄昏前 */
+.hero__title {
+  margin: var(--s4) 0 0;
+  font-size: clamp(56px, 13vw, 168px);
+  font-weight: 800;
+  letter-spacing: .06em;
+  line-height: .95;
+  color: var(--hero-ink);
+  text-shadow:
+    4px 4px 0 var(--hero-shadow),
+    8px 8px 0 color-mix(in srgb, var(--hero-shadow), transparent 45%);
+}
+/* 打字机短语行：等宽 + 光标，HUD 里的"当前指令"。
+   用 --hero-accent 而非 --torch：夜间两者同为 #ffb347，视觉不变；
+   区别只在白天，torch 要为纸白底上的按钮面让路，这里只服务天空。
+   配一层和 .hero__title 同源的像素投影，白天在亮蓝天上也不糊。 */
+.hero__type {
+  margin: var(--s3) 0 0;
+  font-family: var(--font-mono);
+  font-size: clamp(18px, 3.2vw, 30px);
+  color: var(--hero-accent);
+  text-shadow:
+    2px 2px 0 var(--hero-accent-shadow),
+    4px 4px 0 color-mix(in srgb, var(--hero-accent-shadow), transparent 50%);
+  min-height: 1.5em;
+}
+.hero__type::before { content: "> "; color: var(--hero-cue); }
+.caret {
+  display: inline-block;
+  width: .55em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: var(--hero-accent);
+  box-shadow: 2px 2px 0 var(--hero-accent-shadow);
+  animation: blink 1s steps(2, end) infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* HUD 信息面板：地址与开服日期，像左上角提示框 */
+.hero__meta {
+  margin-top: var(--s5);
+  display: inline-block;
+  padding: var(--s3) var(--s4);
+  background: var(--meta-bg);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+  font-family: var(--font-mono);
+  font-size: clamp(14px, 1.8vw, 16px);
+  color: var(--text);
+}
+.hero__meta p { margin: 0; }
+.hero__meta p + p { margin-top: var(--s2); }
+.hero__meta .k { color: var(--text-dim); }
+.hero__meta .addr {
+  color: var(--torch);
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  border-bottom: 2px dashed color-mix(in srgb, var(--torch), transparent 50%);
+}
+.hero__meta .addr:hover { color: var(--torch-hover); }
+
+.hero__actions {
+  margin-top: var(--s5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  align-items: center;
+}
+.hero__note {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: .12em;
+  color: var(--hero-dim);
+  align-self: center;
+}
+
+/* 快捷栏：首屏底部，兼作分区导航（HUD 风的核心载体） */
+.hotbar {
+  margin-top: var(--s7);
+  display: flex;
+  justify-content: center;
+}
+.hotbar__inner {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--hotbar-bg);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.hotbar__slot {
+  position: relative;
+  width: 52px; height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+  transition: color .15s linear, background-color .15s linear;
+}
+.hotbar__slot svg { width: 26px; height: 26px; }
+/* 选中/悬停：MC 的选框是白色实心内描边 */
+.hotbar__slot:hover {
+  color: var(--torch);
+  background: var(--ink-3);
+  box-shadow:
+    inset 0 0 0 3px var(--frame-sel),
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.hotbar__slot .cnt {
+  position: absolute;
+  right: 4px; bottom: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--torch);
+}
+/* 格子上方的浮出标签：不用 title 属性，做真正的像素提示框 */
+.hotbar__slot .tip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--slot-bg);
+  box-shadow: inset 0 0 0 2px var(--slot-edge), inset 0 0 0 3px var(--bevel-hi);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s linear;
+}
+.hotbar__slot:hover .tip, .hotbar__slot:focus-visible .tip { opacity: 1; }
+
+/* 时间机器：点中的格子高亮（复用选中描边），面板浮在快捷栏上方 */
+.hotbar { position: relative; }
+.hotbar__slot.is-active {
+  color: var(--torch);
+  background: var(--ink-3);
+  box-shadow:
+    inset 0 0 0 3px var(--frame-sel),
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.tm {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, 86vw);
+  padding: 12px 14px 10px;
+  background: var(--slot-bg);
+  box-shadow:
+    inset 0 0 0 2px var(--slot-edge),
+    inset 0 0 0 3px var(--bevel-hi),
+    0 8px 24px var(--bevel-lo);
+}
+.tm[hidden] { display: none; }
+.tm__row { display: flex; align-items: center; gap: 10px; }
+.tm__time {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--torch);
+  min-width: 46px;
+  text-align: center;
+}
+.tm__hint {
+  margin-top: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.tm__reset {
+  flex: none;
+  padding: 5px 9px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--ink-2);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.tm__reset:hover { color: var(--torch); background: var(--ink-3); }
+
+/* 色带进度条：夜→晨→正午→昏→夜，滑块本身做成 MC 方块 */
+.tm__track {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; height: 14px; margin: 0;
+  background: linear-gradient(90deg,
+    var(--track-dark) 0%, var(--track-dark) 20%,
+    var(--track-dusk) 25%, var(--track-dawn) 30%,
+    var(--track-day) 40%, var(--track-day-hi) 50%,
+    var(--track-day) 60%, var(--track-dawn) 70%,
+    var(--track-dusk) 75%, var(--track-dark) 80%, var(--track-dark) 100%);
+  box-shadow: inset 0 0 0 1px var(--track-inset);
+  cursor: pointer;
+}
+.tm__track::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 22px;
+  background: var(--knob-face);
+  box-shadow:
+    inset 2px 2px 0 var(--knob-hi),
+    inset -2px -2px 0 var(--knob-lo),
+    0 0 0 2px var(--knob-ring);
+  cursor: grab;
+}
+.tm__track::-moz-range-thumb {
+  width: 16px; height: 22px; border: 0;
+  background: var(--knob-face);
+  box-shadow:
+    inset 2px 2px 0 var(--knob-hi),
+    inset -2px -2px 0 var(--knob-lo),
+    0 0 0 2px var(--knob-ring);
+  cursor: grab;
+}
+.tm__track:active::-webkit-slider-thumb { cursor: grabbing; }
+.tm__track:focus-visible { outline: 2px solid var(--torch); outline-offset: 2px; }
+
+/* MC inspired UI 局部改造：只覆盖底部快捷栏和时间机器。
+   设计意图：这些交互控件不再跟随昼夜变量变浅/变暗，而是使用稳定的像素材质语言，
+   让白天、黄昏、夜晚都保持可读。顶栏与首屏服务器信息块不在本段覆盖范围内。 */
+.hotbar__inner {
+  gap: 8px;
+  padding: 6px;
+  background: rgba(3, 5, 8, .62);
+  border: 3px solid #05070a;
+  box-shadow:
+    inset 2px 2px 0 rgba(255,255,255,.22),
+    inset -2px -2px 0 rgba(0,0,0,.72),
+    0 10px 22px rgba(0,0,0,.35);
+}
+.hotbar__slot {
+  width: 56px;
+  height: 56px;
+  color: #d8d8d8;
+  background:
+    linear-gradient(rgba(255,255,255,.04), rgba(0,0,0,.12)),
+    repeating-linear-gradient(0deg, #7d7d7d 0 2px, #747474 2px 4px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 2px, transparent 2px 8px);
+  border: 3px solid #070707;
+  box-shadow:
+    inset 2px 2px 0 #b8b8b8,
+    inset -2px -2px 0 #3a3a3a,
+    3px 3px 0 rgba(0,0,0,.46);
+  text-shadow: 2px 2px 0 rgba(0,0,0,.78);
+  transition: transform .08s linear, color .12s linear, filter .12s linear, box-shadow .12s linear;
+}
+.hotbar__slot svg { width: 25px; height: 25px; filter: drop-shadow(2px 2px 0 rgba(0,0,0,.45)); }
+.hotbar__slot:hover,
+.hotbar__slot:focus-visible,
+.hotbar__slot.is-active {
+  color: #ffb347;
+  background:
+    linear-gradient(rgba(255,180,70,.12), rgba(0,0,0,.08)),
+    repeating-linear-gradient(0deg, #8c8c8c 0 2px, #7d7d7d 2px 4px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.12) 0 2px, transparent 2px 8px);
+  box-shadow:
+    inset 2px 2px 0 #d6d6d6,
+    inset -2px -2px 0 #303030,
+    0 0 0 3px rgba(255, 255, 255, .22),
+    3px 3px 0 rgba(0,0,0,.5);
+}
+.hotbar__slot:active { transform: translate(2px, 2px); box-shadow: inset -2px -2px 0 #b8b8b8, inset 2px 2px 0 #3a3a3a; }
+.hotbar__slot .tip {
+  color: #f3f3f3;
+  background: #1d1d1d;
+  border: 2px solid #050505;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.16), inset -2px -2px 0 rgba(0,0,0,.65), 4px 4px 0 rgba(0,0,0,.4);
+  text-shadow: 2px 2px 0 #000;
+}
+
+.tm {
+  width: min(520px, 88vw);
+  padding: 16px 18px 14px;
+  color: #e8edf2;
+  background:
+    radial-gradient(circle at 24px 24px, rgba(255, 58, 46, .32) 0 5px, transparent 6px),
+    radial-gradient(circle at calc(100% - 26px) 24px, rgba(255, 179, 71, .28) 0 5px, transparent 6px),
+    linear-gradient(180deg, #394149 0%, #252a31 48%, #15191f 100%);
+  border: 4px solid #07090d;
+  box-shadow:
+    inset 3px 3px 0 rgba(255,255,255,.20),
+    inset -3px -3px 0 rgba(0,0,0,.72),
+    0 12px 28px rgba(0,0,0,.46);
+}
+.tm::before {
+  content: "REDSTONE DAY CONTROL";
+  display: block;
+  margin: 0 0 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .18em;
+  color: #ffb347;
+  text-shadow: 2px 2px 0 #000;
+}
+.tm__time {
+  min-width: 58px;
+  color: #ffb347;
+  text-align: left;
+  text-shadow: 2px 2px 0 #000;
+}
+.tm__track {
+  height: 16px;
+  border: 3px solid #05070a;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), 0 0 10px rgba(255, 65, 45, .18);
+}
+.tm__reset {
+  color: #e6e6e6;
+  background:
+    linear-gradient(rgba(255,255,255,.05), rgba(0,0,0,.12)),
+    repeating-linear-gradient(0deg, #737373 0 2px, #696969 2px 4px);
+  border: 3px solid #070707;
+  box-shadow: inset 2px 2px 0 #b8b8b8, inset -2px -2px 0 #333;
+  text-shadow: 2px 2px 0 #000;
+}
+.tm__reset:hover { color: #ffb347; background: repeating-linear-gradient(0deg, #838383 0 2px, #777 2px 4px); }
+.tm__hint { color: rgba(232,237,242,.72); text-shadow: 1px 1px 0 #000; }
+
+/* 拖拽时缩短过渡，太阳跟手；松手恢复柔和渐变（见 day-cycle.js） */
+.day-fast .sky,
+.day-fast .hero__sun,
+.day-fast .hero__moon,
+.day-fast .hero__clouds { transition-duration: .09s !important; }
+
+/* 彩蛋砖块：藏在首屏地形里的一块可点击方块（呼应页脚 Tips） */
+.egg-block {
+  position: absolute;
+  z-index: 2;
+  right: 8%;
+  bottom: 12%;
+  width: 26px; height: 26px;
+  background: var(--pane-deep);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+  cursor: pointer;
+  opacity: .9;
+}
+.egg-block:hover { opacity: 1; }
+.egg-block.cracked { animation: crack .3s steps(3, end) 1 forwards; }
+@keyframes crack {
+  50% { background: var(--torch-dim); transform: scale(.85); }
+  100% { background: var(--torch-dim); transform: scale(1); }
+}
+
+/* 成就提示条：MC 的 "Advancement made!" */
+.toast {
+  position: fixed;
+  top: calc(var(--nav-h) + var(--s3));
+  right: var(--s4);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  background: var(--toast-bg);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo),
+    inset 0 0 0 2px var(--torch-dim);
+  transform: translateY(-24px);
+  opacity: 0;
+  transition: transform .25s steps(4, end), opacity .25s linear;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast__icon {
+  width: 32px; height: 32px; flex: none;
+  display: grid; place-items: center;
+  background: var(--torch);
+  color: var(--on-accent);
+  font-size: 20px;
+  font-weight: 800;
+}
+.toast__body { font-family: var(--font-mono); }
+.toast__body b { display: block; color: var(--torch); font-size: 13px; letter-spacing: .08em; }
+.toast__body span { display: block; color: var(--text); font-size: 15px; }
+
+/* ---------- 8. 页脚 ------------------------------------------------------ */
+.foot {
+  background: var(--ink-0);
+  border-top: 3px solid var(--ink-line);
+  padding-block: var(--s7) var(--s5);
+}
+.foot__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--s6);
+  align-items: start;
+}
+.foot h2 { font-size: clamp(20px, 2.4vw, 26px); margin-bottom: var(--s3); }
+.foot__about { color: var(--text-dim); font-size: 16px; }
+.foot__about strong { color: var(--text); font-weight: 700; }
+.foot__tips {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--torch);
+  background: var(--ink-1);
+  box-shadow:
+    inset 2px 2px 0 var(--bevel-hi),
+    inset -2px -2px 0 var(--bevel-lo);
+}
+.foot__side { display: grid; gap: var(--s3); justify-items: start; }
+.foot__brand { display: flex; align-items: center; gap: var(--s2); }
+.foot__brand img { width: 36px; height: 36px; image-rendering: pixelated; }
+.foot__brand b { font-family: var(--font-mono); letter-spacing: .08em; }
+
+/* 版权与备案 */
+.foot__legal {
+  margin-top: var(--s6);
+  padding-top: var(--s4);
+  border-top: 2px solid var(--ink-line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s4);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.foot__legal a { color: var(--text-dim); }
+.foot__legal a:hover { color: var(--torch); }
+.foot__beian { display: inline-flex; align-items: center; gap: var(--s1); }
+.foot__beian img { width: 18px; height: 20px; }
+
+/* ---------- 9. 入场动画（只在 JS 可用时生效） ---------------------------- */
+/* 设计原则：JS 未加载 / 未执行时，页面内容一律可见。
+   因此隐藏态挂在 html.js 上，由 <head> 里一行脚本决定。 */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .45s ease-out, transform .45s ease-out;
+  transition-delay: var(--rd, 0ms);
+}
+.js .reveal.in { opacity: 1; transform: none; }
+
+/* ---------- 10. 响应式：≤992 与 ≤640 两级 -------------------------------- */
+@media (max-width: 992px) {
+  :root { --nav-h: 52px; }
+  body { font-size: 16px; }
+  .band { padding-block: var(--s7); }
+  .hud__nav, .hud__actions { display: none; }
+  .hud__toggle { display: flex; }
+  .foot__grid { grid-template-columns: 1fr; gap: var(--s5); }
+  .hotbar__slot { width: 44px; height: 44px; }
+  .hotbar__slot svg { width: 22px; height: 22px; }
+  .hero__sun { width: 68px; height: 68px; left: 58%; }
+}
+
+@media (max-width: 640px) {
+  .wrap { padding-inline: var(--s3); }
+  .band { padding-block: var(--s6); }
+  .band__head { margin-bottom: var(--s5); }
+  .hero { min-height: auto; padding-bottom: var(--s7); }
+  .hero__title { letter-spacing: .02em; }
+  .hero__meta { display: block; }
+  .hero__actions { flex-direction: column; align-items: stretch; }
+  .hero__actions .btn { justify-content: center; }
+  /* 手机端快捷栏收成两行，保持每格可点面积 */
+  .hotbar__inner { flex-wrap: wrap; justify-content: center; max-width: 100%; }
+  .hotbar__slot { width: 40px; height: 40px; }
+  .egg-block { width: 34px; height: 34px; right: 6%; bottom: 8%; }
+  .foot__legal { flex-direction: column; align-items: flex-start; gap: var(--s2); }
+}
+
+/* ---------- 11. 减弱动效偏好：全部关闭，内容直接可见 ---------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .js .reveal { opacity: 1; transform: none; }
+  .hero__stars i, .cloud, .caret { animation: none; }
+  .caret { opacity: 1; }
+}
+
+/* ---------- 12. 打印：只保留内容与链接原文 -------------------------------- */
+@media print {
+  .hud, .hero__terrain, .hero__clouds, .hero__stars, .hero__sky, .hero__sun, .hero__moon, .hotbar, .egg-block { display: none; }
+  /* 打印固定纸白墨黑：这是纸张约束，故意不参与昼夜插值 */
+  body { background: #fff; color: #000; }
+}

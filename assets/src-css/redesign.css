@@ -1,0 +1,1289 @@
+/* ============================================================
+   创见服务器官网重构 · MC 界面视觉系统
+   方角像素斜面面板 + 品牌蓝 + 皮肤头像（方向经用户迭代确定）
+   ============================================================ */
+
+:root {
+  --mc-ground: #eceff1;
+  --mc-panel: #e0e4e6;
+  --mc-panel-light: #f5f7f8;
+  --mc-panel-dark: #aab2b8;
+  --mc-line: #3f4349;
+  --mc-ink: #23262b;
+  --mc-ink-soft: #4d535c;
+  --mc-blue: #0d8bff;
+  --mc-blue-deep: #006fd6;
+  --mc-blue-deeper: #005fbd;
+  --mc-green: #43a047;
+  --mc-white: #fbfaf7;
+  --mc-mono: "Consolas", "Courier New", ui-monospace, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--mc-ground);
+  color: var(--mc-ink);
+  font-family: "Work Sans", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+::selection {
+  background: var(--mc-blue-deep);
+  color: #fff;
+}
+
+.mc-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* ---------- 像素斜面面板（MC UI 材质） ---------- */
+.mc-panel {
+  background: var(--mc-panel);
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 var(--mc-panel-light),
+    inset 2px 0 0 var(--mc-panel-light),
+    inset 0 -2px 0 var(--mc-panel-dark),
+    inset -2px 0 0 var(--mc-panel-dark);
+}
+
+/* ---------- 按钮 ---------- */
+.mc-btn {
+  display: inline-block;
+  padding: 0.7rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 2px solid var(--mc-line);
+  border-radius: 0;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.mc-btn-primary {
+  background: var(--mc-blue-deep);
+  border-color: var(--mc-line);
+  color: #fff;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.mc-btn-primary:hover,
+.mc-btn-primary:focus {
+  background: var(--mc-blue-deeper);
+  border-color: var(--mc-line);
+  color: #fff;
+  text-decoration: none;
+}
+
+.mc-btn-ghost {
+  background: var(--mc-white);
+  color: var(--mc-ink);
+  border-color: var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+}
+
+.mc-btn-ghost:hover,
+.mc-btn-ghost:focus {
+  background: var(--mc-panel-light);
+  color: var(--mc-ink);
+}
+
+/* ---------- 导航条 ---------- */
+.mc-navbar {
+  background: var(--mc-line);
+  border-bottom: 2px solid #14161a;
+  position: relative;
+  z-index: 20;
+}
+
+.mc-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+}
+
+.mc-logo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.mc-logo:hover,
+.mc-logo:focus {
+  text-decoration: none;
+}
+
+.mc-logo-img {
+  width: auto;
+  height: 34px;
+  display: block;
+}
+
+/* 汉堡按钮（仅移动端显示；SVG 三横线，方角 bevel） */
+.mc-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-direction: column;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid #14161a;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.mc-nav-toggle-bar {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #fff;
+  transition: transform 0.25s ease-out, opacity 0.2s ease-out;
+}
+
+.mc-nav-toggle[aria-expanded="true"] .mc-nav-toggle-bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.mc-nav-toggle[aria-expanded="true"] .mc-nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+.mc-nav-toggle[aria-expanded="true"] .mc-nav-toggle-bar:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.mc-nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem 1rem;
+  /* 移动端折叠用 max-height 过渡（直接子元素多、无法用 grid 单轨道，见 journey 方案差异） */
+  overflow: hidden;
+  max-height: none;
+  transition: max-height 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease-out;
+}
+
+.mc-nav-links a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.8rem;
+  border: 2px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.mc-nav-links a:hover,
+.mc-nav-links a:focus {
+  background: var(--mc-blue-deep);
+  border-color: #14161a;
+  color: #fff;
+}
+
+/* 移动端：汉堡按钮 + 纵向折叠面板 */
+@media (max-width: 767.98px) {
+  .mc-nav-toggle {
+    display: inline-flex;
+  }
+
+  .mc-nav-links {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    position: absolute;
+    top: 100%;
+    right: 1.25rem;
+    left: 1.25rem;
+    z-index: 25;
+    background: var(--mc-line);
+    border: 2px solid #14161a;
+    border-top: 0;
+    padding: 0.5rem 0.75rem 0.75rem;
+    max-height: 0;
+    opacity: 0;
+  }
+
+  .mc-nav-links.is-open {
+    max-height: 460px;
+    opacity: 1;
+  }
+
+  .mc-nav-links a {
+    display: block;
+    width: 100%;
+    text-align: right;
+    padding: 0.55rem 0.8rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mc-nav-links {
+      transition: none;
+    }
+  }
+}
+
+/* ---------- 首屏 ---------- */
+.mc-hero {
+  padding: 6rem 0 7rem;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(13, 139, 255, 0.12), transparent 55%),
+    var(--mc-ground);
+  border-bottom: 4px solid var(--mc-line);
+  color: var(--mc-ink);
+}
+
+.mc-hero-copy {
+  max-width: 640px;
+}
+
+.mc-title {
+  font-size: 3.2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--mc-ink);
+  margin: 0 0 1rem;
+}
+
+.mc-typing {
+  color: var(--mc-blue);
+}
+
+.mc-lead {
+  font-size: 1.15rem;
+  color: var(--mc-ink-soft);
+  margin: 0 0 1.8rem;
+  line-height: 1.9;
+}
+
+.mc-addr {
+  font-family: var(--mc-mono);
+  font-weight: 700;
+  color: var(--mc-ink);
+  background: var(--mc-white);
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+  padding: 0.15rem 0.5rem;
+}
+
+.mc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.mc-note {
+  font-size: 0.9rem;
+  color: var(--mc-ink-soft);
+  margin: 0;
+}
+
+/* ---------- 首屏右侧名片卡已按用户要求移除（2026-08 迭代） ---------- */
+
+/* ---------- 团队皮肤头像（从 64×64 皮肤精准截取头部正面） ---------- */
+.mc-avatar {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mc-panel-light);
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+}
+
+.mc-skin-canvas {
+  /* 16×16 头部按 3× 整数放大：48×48，像素完美（无平滑） */
+  width: 48px;
+  height: 48px;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+}
+
+/* ---------- 区块通用 ---------- */
+.mc-section {
+  padding: 4.5rem 0;
+}
+
+.mc-section + .mc-section {
+  border-top: 2px solid var(--mc-panel-dark);
+}
+
+.mc-section-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--mc-ink);
+  margin: 0 0 0.5rem;
+}
+
+.mc-section-lead {
+  font-size: 1.05rem;
+  color: var(--mc-ink-soft);
+  margin: 0 0 2.5rem;
+  line-height: 1.9;
+}
+
+/* ---------- 特性区 ---------- */
+.mc-features {
+  padding-top: 3.5rem;
+}
+
+.mc-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.mc-feature {
+  padding: 1.8rem 1.6rem;
+  background: var(--mc-white);
+}
+
+.mc-feature:nth-child(1) .mc-feature-icon {
+  background: #e6f2ff;
+  border-color: #4da6ff;
+}
+
+.mc-feature:nth-child(2) .mc-feature-icon {
+  background: #e9f7e9;
+  border-color: #4caf50;
+}
+
+.mc-feature:nth-child(3) .mc-feature-icon {
+  background: #fff3e0;
+  border-color: #ffa726;
+}
+
+.mc-feature-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+  margin-bottom: 1.1rem;
+}
+
+.mc-feature-icon span {
+  font-size: 30px;
+  color: var(--mc-blue-deep);
+}
+
+.mc-feature:nth-child(2) .mc-feature-icon span {
+  color: #2e7d32;
+}
+
+.mc-feature:nth-child(3) .mc-feature-icon span {
+  color: #e65100;
+}
+
+.mc-feature-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--mc-ink);
+  margin: 0 0 0.6rem;
+}
+
+.mc-feature-text {
+  font-size: 0.92rem;
+  color: var(--mc-ink-soft);
+  margin: 0;
+  line-height: 1.9;
+}
+
+/* ---------- 玩法卡片 ---------- */
+.mc-recipes {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.mc-recipe {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  background: var(--mc-white);
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+  transition: border-color 0.2s ease;
+}
+
+.mc-recipe:hover {
+  border-color: var(--mc-blue);
+}
+
+.mc-recipe-img {
+  min-height: 280px;
+  overflow: hidden;
+  border-right: 2px solid var(--mc-line);
+}
+
+.mc-recipe-flip .mc-recipe-img {
+  border-right: 0;
+  border-left: 2px solid var(--mc-line);
+  order: 2;
+}
+
+.mc-recipe-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mc-recipe-body {
+  position: relative;
+  padding: 2rem 2.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mc-recipe-tag {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  font-family: var(--mc-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #14161a;
+  background: var(--mc-white);
+  border: 2px solid var(--mc-line);
+  padding: 0.15rem 0.55rem;
+}
+
+.mc-recipe-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--mc-ink);
+  margin: 0 0 0.5rem;
+}
+
+.mc-recipe-desc {
+  font-size: 1rem;
+  color: var(--mc-ink-soft);
+  margin: 0 0 1.2rem;
+}
+
+.mc-recipe-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mc-recipe-list li {
+  font-size: 0.92rem;
+  color: var(--mc-ink-soft);
+  padding: 0.28rem 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.mc-recipe-list strong {
+  color: var(--mc-ink);
+  font-weight: 700;
+}
+
+.mc-check {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  margin-top: 0.45rem;
+  background: var(--mc-green);
+  border: 2px solid #14161a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- 作品墙：左右切换轮播（用户要求 2026-08 迭代） ---------- */
+.mc-gallery-slider {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.mc-gallery-viewport {
+  overflow: hidden;
+  padding: 10px;
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.mc-gallery-track {
+  display: flex;
+  transition: transform 0.5s ease-out;
+}
+
+.mc-gallery-track .mc-shot {
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-size: cover;
+  background-position: center;
+  display: block;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.mc-gallery-track .mc-shot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #14161a;
+  opacity: 0.25;
+  transition: opacity 0.25s ease;
+}
+
+.mc-gallery-track .mc-shot:hover::before,
+.mc-gallery-track .mc-shot:focus::before {
+  opacity: 0.55;
+}
+
+.mc-shot-caption {
+  position: absolute;
+  left: 0.9rem;
+  bottom: 0.9rem;
+  z-index: 2;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: var(--mc-line);
+  border: 2px solid #14161a;
+  padding: 0.3rem 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.mc-gallery-controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
+.mc-gallery-btn {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--mc-line);
+  border-radius: 0;
+  background: var(--mc-white);
+  color: var(--mc-ink);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.mc-gallery-btn:hover,
+.mc-gallery-btn:focus {
+  background: var(--mc-blue-deep);
+  border-color: var(--mc-line);
+  color: #fff;
+}
+
+.mc-gallery-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ---------- 管理团队轮播 ---------- */
+.mc-team .team-slider {
+  max-width: 720px;
+}
+
+.mc-team .team-slide {
+  background: var(--mc-white);
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+  border-radius: 0;
+}
+
+.mc-team .team-slide:hover {
+  border-color: var(--mc-blue);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+}
+
+.mc-team .team-slide-inner {
+  gap: 1.6rem;
+}
+
+.mc-team .team-slide h3 {
+  color: var(--mc-ink);
+}
+
+.mc-team .team-slide p {
+  color: var(--mc-ink-soft);
+}
+
+.mc-team .team-slide .text-muted {
+  color: var(--mc-ink-soft) !important;
+}
+
+.mc-team .team-slider-btn {
+  border-radius: 0;
+  border: 2px solid var(--mc-line);
+  background: var(--mc-white);
+  color: var(--mc-ink);
+}
+
+.mc-team .team-slider-btn:hover {
+  background: var(--mc-blue-deep);
+  border-color: var(--mc-line);
+  color: #fff;
+  box-shadow: none;
+}
+
+/* ---------- 成就横幅 ---------- */
+.mc-achievements {
+  background: var(--mc-line);
+  border-top: 2px solid #14161a;
+  border-bottom: 2px solid #14161a;
+  padding: 3.5rem 0;
+}
+
+.mc-achieve-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #8fcf7a;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 2rem;
+}
+
+.mc-achieve-star {
+  width: 18px;
+  height: 18px;
+  background: var(--mc-green);
+  border: 2px solid #14161a;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45);
+}
+
+.mc-achieve-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.mc-achieve {
+  text-align: center;
+}
+
+.mc-achieve-num {
+  display: block;
+  font-family: var(--mc-mono);
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.mc-achieve-name {
+  display: block;
+  margin-top: 0.4rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- 页脚 ---------- */
+.mc-footer {
+  background: var(--mc-ground);
+  padding: 4rem 0 2rem;
+}
+
+.mc-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 3rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 2px solid var(--mc-panel-dark);
+}
+
+.mc-footer-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mc-ink);
+  margin: 0 0 1rem;
+}
+
+.mc-footer-about p {
+  font-size: 0.92rem;
+  color: var(--mc-ink-soft);
+  margin: 0;
+  line-height: 2;
+}
+
+.mc-footer-side .mc-btn {
+  margin-bottom: 1.2rem;
+}
+
+.mc-footer-contact {
+  font-size: 0.92rem;
+  color: var(--mc-ink-soft);
+  margin: 0;
+  line-height: 1.9;
+}
+
+.mc-footer-bottom {
+  padding-top: 1.6rem;
+  font-size: 0.88rem;
+  color: var(--mc-ink-soft);
+}
+
+.mc-footer-bottom p {
+  margin: 0 0 0.3rem;
+}
+
+.mc-icp a {
+  color: var(--mc-blue-deep);
+  text-decoration: none;
+}
+
+.mc-icp a:hover {
+  text-decoration: underline;
+}
+
+.mc-icp-sep {
+  margin: 0 0.6rem;
+  color: var(--mc-panel-dark);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 991.98px) {
+  .mc-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mc-recipe {
+    grid-template-columns: 1fr;
+  }
+
+  .mc-recipe-img {
+    min-height: 220px;
+    border-right: 0;
+    border-bottom: 2px solid var(--mc-line);
+  }
+
+  .mc-recipe-flip .mc-recipe-img {
+    border-left: 0;
+    border-bottom: 2px solid var(--mc-line);
+    order: 0;
+  }
+
+  .mc-gallery-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .mc-gallery-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .mc-achieve-grid {
+    grid-template-columns: 1fr;
+    gap: 1.6rem;
+  }
+
+  .mc-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .mc-title {
+    font-size: 2.4rem;
+  }
+
+  .mc-gallery-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .mc-gallery-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .mc-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mc-btn {
+    text-align: center;
+  }
+}
+
+/* ---------- 玩法卡彩色编号徽标 ---------- */
+.mc-recipe:nth-child(1) .mc-recipe-tag { border-color: #43a047; }
+.mc-recipe:nth-child(2) .mc-recipe-tag { border-color: #26a69a; }
+.mc-recipe:nth-child(3) .mc-recipe-tag { border-color: #ef5350; }
+.mc-recipe:nth-child(4) .mc-recipe-tag { border-color: #fb8c00; }
+.mc-recipe:nth-child(5) .mc-recipe-tag { border-color: #8d6e63; }
+.mc-recipe:nth-child(6) .mc-recipe-tag { border-color: #5c6bc0; }
+
+/* ---------- 区块标题点缀 ---------- */
+.mc-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.mc-section-title::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  background: var(--mc-blue);
+  border: 2px solid var(--mc-line);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4);
+}
+
+.mc-achievements {
+  scroll-margin-top: 20px;
+}
+.mc-features,
+.mc-play,
+.mc-gallery,
+.mc-team,
+.mc-footer {
+  scroll-margin-top: 20px;
+}
+.mc-story,
+.mc-journey {
+  scroll-margin-top: 20px;
+}
+
+/* ---------- 发展历程时间线 ---------- */
+.mc-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mc-timeline::before {
+  content: "";
+  position: absolute;
+  top: 1.8rem;
+  bottom: 1.8rem;
+  left: 0.8rem;
+  width: 2px;
+  background: var(--mc-line);
+}
+
+.mc-timeline-item {
+  position: relative;
+  padding-left: 3rem;
+}
+
+.mc-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: calc(0.8rem + 1px);
+  top: 2.4rem;
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%);
+  background: var(--mc-blue);
+  border: 2px solid var(--mc-line);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4);
+}
+
+.mc-timeline-card {
+  padding: 1.5rem 1.6rem;
+  background: var(--mc-white);
+  border-radius: 0;
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+  transition: border-color 0.2s ease;
+}
+
+.mc-timeline-card:hover {
+  border-color: var(--mc-blue);
+}
+
+.mc-timeline-time {
+  display: inline-block;
+  font-family: var(--mc-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--mc-ink);
+  background: var(--mc-ground);
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+  padding: 0.2rem 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.mc-timeline-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--mc-ink);
+  margin: 0 0 0.4rem;
+}
+
+.mc-timeline-text {
+  font-size: 0.95rem;
+  color: var(--mc-ink-soft);
+  margin: 0;
+  line-height: 1.9;
+}
+
+/* ---------- 四年老服的故事 ---------- */
+.mc-journey-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.mc-journey-panel {
+  padding: 1.8rem 2rem;
+  background: var(--mc-white);
+  border-radius: 0;
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+}
+
+.mc-journey-panel p {
+  font-size: 0.98rem;
+  color: var(--mc-ink-soft);
+  margin: 0 0 1rem;
+  line-height: 2;
+}
+
+.mc-journey-panel p:last-child {
+  margin-bottom: 0;
+}
+
+.mc-journey-side {
+  padding: 1.6rem 1.5rem 1.5rem;
+  background: var(--mc-white);
+  border-radius: 0;
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+}
+
+.mc-journey-source {
+  font-size: 0.92rem;
+  color: var(--mc-ink-soft);
+  margin: 0 0 1.3rem;
+  line-height: 1.9;
+}
+
+.mc-journey-source a {
+  color: var(--mc-blue-deep);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mc-journey-source a:hover {
+  text-decoration: underline;
+}
+
+.mc-journey-side .mc-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+/* ---------- 响应式：新区块 ---------- */
+@media (max-width: 991.98px) {
+  .mc-journey-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .mc-timeline-item {
+    padding-left: 2.4rem;
+  }
+}
+
+/* ------------------------------------------------------------
+   活泼动画增强（t3）：入场浮现 + 悬停拿起 + 徽标脉冲
+   约束：方角不变、无投影无上浮卡片；动画一次、不循环、ease-out；
+   只在视口内触发（IntersectionObserver，见 js/reveal.js）；
+   尊重 prefers-reduced-motion（直接显示）。
+   ------------------------------------------------------------ */
+
+/* 玩法卡悬停：轻微「拿起」（≤4px 位移，方角与描边语言不变） */
+.mc-recipe {
+  transition: border-color 0.2s ease, transform 0.2s ease-out;
+}
+
+.mc-recipe:hover {
+  transform: translateY(-3px);
+}
+
+/* 玩法 1-6 彩色编号徽标：悬停时轻微放大一下 */
+.mc-recipe-tag {
+  transition: transform 0.2s ease-out;
+}
+
+.mc-recipe:hover .mc-recipe-tag {
+  transform: scale(1.06);
+}
+
+/* ---------- 入场动画（.mc-reveal / .mc-reveal-in） ---------- */
+/* 隐藏态由 html.mc-js 门控：JS 未加载时页面正常显示、无 FOUC */
+html.mc-js .mc-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+html.mc-js .mc-reveal.mc-reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- 尊重减弱动态效果 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html.mc-js .mc-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .mc-recipe:hover,
+  .mc-recipe:hover .mc-recipe-tag {
+    transform: none !important;
+  }
+}
+
+/* ---------- 时间线·未来节点（加载中动画：像素方块脉冲） ---------- */
+.mc-timeline-future .mc-timeline-text {
+  margin-bottom: 1rem;
+}
+
+.mc-timeline-loading {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.mc-timeline-loading span {
+  width: 12px;
+  height: 12px;
+  background: var(--mc-blue);
+  border: 2px solid #14161a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  animation: mc-loading-pulse 1.3s ease-in-out infinite;
+}
+
+.mc-timeline-loading span:nth-child(2) {
+  animation-delay: 0.22s;
+}
+
+.mc-timeline-loading span:nth-child(3) {
+  animation-delay: 0.44s;
+}
+
+@keyframes mc-loading-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-timeline-loading span {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 全页加载遮罩（复用三方块脉冲；页面完全加载前显示，加载后淡出） ---------- */
+.mc-page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mc-ground);
+  transition: opacity 0.45s ease-out, visibility 0.45s ease-out;
+}
+
+.mc-page-loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.mc-page-loader-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 2.6rem;
+  background: var(--mc-panel-light);
+  border: 2px solid var(--mc-line);
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+}
+
+.mc-page-loader-box .mc-timeline-loading {
+  gap: 8px;
+}
+
+.mc-page-loader-box .mc-timeline-loading span {
+  width: 16px;
+  height: 16px;
+}
+
+.mc-page-loader-text {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--mc-ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-page-loader {
+    transition: none;
+  }
+}
+
+/* ---------- 故事折叠（t6 文案 3.3，展开/收起带 MC 克制过渡） ---------- */
+/* 无 JS 回退：hidden 属性直接隐藏（内容不丢、不闪烁） */
+.mc-journey-more[hidden] {
+  display: none;
+}
+
+/* JS 接管后：grid-rows 0fr→1fr 高度过渡 + 淡入（cubic-bezier 同站点动效语言） */
+.mc-journey-more {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease-out;
+}
+
+.mc-journey-more > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.mc-journey-more.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.mc-journey-more p:last-child {
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-journey-more {
+    transition: none;
+  }
+}
+
+.mc-journey-toggle {
+  display: inline-block;
+  margin-top: 1.2rem;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--mc-blue-deep);
+  background: var(--mc-white);
+  border: 2px solid var(--mc-line);
+  border-radius: 0;
+  box-shadow:
+    inset 0 2px 0 #fff,
+    inset 0 -2px 0 var(--mc-panel-dark);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.mc-journey-toggle:hover {
+  background: var(--mc-blue-deep);
+  border-color: var(--mc-line);
+  color: #fff;
+}
+
+.mc-journey-toggle:focus-visible {
+  outline: 2px solid var(--mc-blue);
+  outline-offset: 2px;
+}
+
+/* ---------- 玩法区补充说明（保留真实信息，见 t6 3.2） ---------- */
+.mc-play-note {
+  margin: 2rem auto 0;
+  max-width: 720px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--mc-ink-soft);
+  line-height: 1.9;
+}
