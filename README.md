@@ -1,27 +1,5 @@
 # CREATEFUL 创见 · 官网静态站
 
-纯静态站点，无构建步骤、无依赖。解压即可部署。
-
-## 部署
-
-把整个目录放到任意静态服务器根路径下，访问 `index.html` 即可。
-本地预览：
-
-```
-python -m http.server 8091 --directory <本目录>
-```
-
-## 目录结构
-
-```
-index.html          单页站点
-css/main.css        设计变量、HUD 组件、昼夜过渡
-css/sections.css    各分区版式
-js/                 12 个渐进增强脚本（详见下）
-assets/images/      截图与图标
-assets/skin/        团队皮肤（yifu233 / why / lt）
-```
-
 ## 昼夜系统
 
 `js/day-cycle.js` 读取访客浏览器本地时间，沿一条弧线驱动太阳、月亮、天空分层
@@ -49,10 +27,6 @@ assets/skin/        团队皮肤（yifu233 / why / lt）
 ```
 Wiki | 特性 配方 进度 故事 作品 团队 成就 关于 | QQ群 仪表盘 时间机器
 ```
-
-第 1 格 Wiki 与末 3 格（QQ群 / 仪表盘 / 时间机器）是站外或功能入口，中间 8 格为
-页内锚点导航。格子固定 52px，`flex` 排布；992px 以下缩到 44px，640px 以下 40px
-并允许换行，不会撑破容器。
 
 ## 外链清单
 
