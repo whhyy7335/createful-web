@@ -1,4 +1,10 @@
-# CREATEFUL 创见 · 官网静态站
+# CREATEFUL 创见
+
+## 这是什么
+
+CREATEFUL，中文名「创见」，是一个以 Minecraft 生存与轻量玩法为核心的小型公益服务器。
+	
+服务器最早起步于 2022 年 8 月 9 日，经历过面板服、关服、重开、重置、玩家流失，也经历过重新搭建、优化体验、整理玩法和重新出发。
 
 ## 昼夜系统
 
@@ -6,7 +12,7 @@
 （正午 / 黄昏 / 深夜）与星星。6 点日出、12 点正午、18 点日落。禁用 JS 时天空
 恒为黄昏，太阳停在默认位置，不影响阅读。
 
-## 时间机器（v2 新增）
+## 时间机器
 
 首屏快捷栏最右侧的时钟格（`#tm-toggle`）点开一条 0~24h 的色带进度条：
 
@@ -32,19 +38,9 @@ Wiki | 特性 配方 进度 故事 作品 团队 成就 关于 | QQ群 仪表盘
 
 以下地址指向站外，部署后可按需替换：
 
-| 用途 | 地址 | 出现次数 |
-| --- | --- | --- |
-| 服务器 Wiki | `https://wiki.createful.cn/docs` | 3 |
-| 服务器仪表盘 | `https://dashboard.createful.cn` | 5 |
-| QQ 群 | `https://qm.qq.com/q/43ovCosqCc` | 4 |
-| 玩法调研问卷 | `https://www.wjx.cn/vm/elbPk9e.aspx` | 1 |
+服务器地址：`mc.createful.cn`
+官网：[createful.cn](https://createful.cn)
+QQ 群：[点击加入 QQ 群](https://qm.qq.com/q/43ovCosqCc)
+实时仪表盘：[dashboard.createful.cn](https://dashboard.createful.cn)
+Wiki：[wiki.createful.cn/docs](https://wiki.createful.cn/docs)
 
-Wiki 入口共三处：顶部 HUD 操作区（`团队` 与 `QQ群` 之间，ghost 样式）、小屏导航
-面板、首屏快捷栏第 1 格。均为 `target="_blank" rel="noopener noreferrer"`。
-
-## 无障碍与降级
-
-- 所有交互控件为原生 `button` / `input[type=range]`，键盘可达，带 `aria-label`
-  与 `aria-expanded`
-- `prefers-reduced-motion` 下关闭动画，并隐藏首屏装饰层
-- 打印样式仅保留正文与链接原文
