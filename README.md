@@ -31,8 +31,12 @@ CREATEFUL，中文名「创见」，是一个以 Minecraft 生存与轻量玩法
 以下地址指向站外，部署后可按需替换：
 
 服务器地址：`mc.createful.cn`
+
 官网：[createful.cn](https://createful.cn)
+
 QQ 群：[点击加入 QQ 群](https://qm.qq.com/q/43ovCosqCc)
+
 实时仪表盘：[dashboard.createful.cn](https://dashboard.createful.cn)
+
 Wiki：[wiki.createful.cn/docs](https://wiki.createful.cn/docs)
 
