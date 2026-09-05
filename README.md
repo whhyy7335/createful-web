@@ -26,14 +26,6 @@ CREATEFUL，中文名「创见」，是一个以 Minecraft 生存与轻量玩法
 （`setManualHour` / `followClock` / `getHour` / `isManual`）。拖拽期间给 `<html>`
 挂 `.day-fast`，把 1.6s 过渡缩到 0.09s 以求跟手，松手后自动撤除恢复柔和渐变。
 
-## 快捷栏
-
-首屏底部 `.hotbar__inner` 共 12 格，从左到右：
-
-```
-Wiki | 特性 配方 进度 故事 作品 团队 成就 关于 | QQ群 仪表盘 时间机器
-```
-
 ## 外链清单
 
 以下地址指向站外，部署后可按需替换：
